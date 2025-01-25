@@ -1,7 +1,7 @@
 //`include "ALU.sv"
 `include "memory.sv"
 `include "regfile.sv"
-`include "risc_instructions_handler_2.sv"
+`include "risc_instructions_handler.sv"
 
 module risc_v(
   input logic  clk,

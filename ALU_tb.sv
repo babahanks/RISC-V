@@ -131,9 +131,9 @@ module ALU_tb();
                    5'b101, 
                    reg_wr_addr); 
     
-    assert(reg_wr_data == 2'b10) 
+    assert(reg_wr_data == 32'b10) 
       else $error("reg_wr_data should be %b. it is %b", 
-                   2'b10, 
+                   32'b10, 
                    reg_wr_data); 
     
     assert(done == 1'b0) 
@@ -165,8 +165,16 @@ module ALU_tb();
                    1'b1, 
                    done); 
     
+   
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
+    @(posedge clk);
     
-    
+    input_A = 32'b10;
+    input_B = 32'b10;
+    op_code = ADD;
+
     reg_wr_ack = 1'b0;
     reg_out = 1'b0;
     mem_out = 1'b1;
@@ -196,9 +204,9 @@ module ALU_tb();
                    5'b101, 
                    mem_wr_addr); 
     
-    assert(mem_wr_data == 2'b10) 
+    assert(mem_wr_data == 32'b100) 
       else $error("mem_wr_data should be %b. it is %b", 
-                   2'b10, 
+                   32'b100, 
                    mem_wr_data); 
     
     assert(done == 1'b0) 
@@ -257,9 +265,9 @@ module ALU_tb();
                    1'b1, 
                    pc_branch_data_valid); 
     
-    assert(pc_branch_data == 2'b10) 
+    assert(pc_branch_data == 32'b100) 
       else $error("pc_branch_data should be %b. it is %b", 
-                   2'b10, 
+                   32'b100, 
                    pc_branch_data); 
     
     $finish();

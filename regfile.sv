@@ -51,7 +51,7 @@ module regfile(
     else if (rd_addr_a_valid) begin
       rd_data_a_ack <= 1'b1;
       rd_data_a <= registers[rd_addr_a];
-      $display("rd_data_a: %b", registers[rd_addr_a]);
+      $display("regfile::rd_data_a: %b", registers[rd_addr_a]);
     end
   end
   
@@ -66,7 +66,7 @@ module regfile(
     else if (rd_addr_b_valid) begin
       rd_data_b_ack <= 1'b1;
       rd_data_b <= registers[rd_addr_b];
-      $display("rd_data_b: %b", registers[rd_addr_b]);
+      $display("regfile::rd_data_b: %b", registers[rd_addr_b]);
     end
   end
   
