@@ -14,7 +14,7 @@ module risc_v_tb();
     forever #5 clk = ~clk;
   end
   
-  task fetch_and_run_next_inst(
+  task fetch_and_run_R_inst(
     input logic[31:0] exp_PC,
     input logic[31:0] exp_instruction,
     input logic[4:0]  exp_reg_rd_addr_a,
@@ -35,14 +35,14 @@ module risc_v_tb();
     
     @(posedge clk);  // instruction received
     $display("clk: 3");             
-    setUpRegDataFromInstruction(
+    setUpRegDataFromInstruction_R(
       exp_instruction,
       exp_reg_rd_addr_a,
       exp_reg_rd_addr_b);
     
     @(posedge clk);
     $display("clk: 4");
-    getRegData(
+    getRegData_R(
       exp_reg_rd_data_a,
       exp_reg_rd_data_b);
     
@@ -56,8 +56,6 @@ module risc_v_tb();
     @(posedge clk);
     $display("clk: 6");
     aluWriteResultToReg(
-      exp_reg_rd_data_a,
-      exp_reg_rd_data_b,
       exp_reg_wr_addr,
       exp_reg_wr_data);
     
@@ -84,6 +82,71 @@ module risc_v_tb();
     
   endtask
   
+  
+  task fetch_and_run_I_inst(
+    input logic[31:0] exp_PC,
+    input logic[31:0] exp_instruction,
+    input logic[4:0]  exp_reg_rd_addr_a,
+    input logic[31:0] exp_reg_rd_data_a,
+    input logic[31:0] exp_immediate_value,
+    input ALU_OP_CODE exp_alu_code,
+    input logic[31:0] exp_reg_wr_addr,
+    input logic[31:0] exp_reg_wr_data);
+    
+
+    @(posedge clk);
+    $display("clk: 1");
+    setupToGetInstruction(exp_PC);
+    
+    @(posedge clk);  // spent in memory
+    $display("clk: 2");
+    
+    @(posedge clk);  // instruction received
+    $display("clk: 3");             
+    setUpRegDataFromInstruction_I(
+      exp_instruction,
+      exp_reg_rd_addr_a);
+    
+    @(posedge clk);
+    $display("clk: 4");
+    getRegData_I(
+      exp_reg_rd_data_a);
+    
+    @(posedge clk);
+    $display("clk: 5");
+    setUpALUCall(
+      exp_reg_rd_data_a,
+      exp_immediate_value,
+      exp_alu_code);
+    
+    @(posedge clk);
+    $display("clk: 6");
+    aluWriteResultToReg(
+      exp_reg_wr_addr,
+      exp_reg_wr_data);
+    
+    @(posedge clk)
+    $display("clk: 7");
+	checkDataWrittenInReg(
+    	exp_reg_wr_addr,
+      	exp_reg_wr_data);  
+    
+    @(posedge clk);
+    $display("clk: 8");
+    //rihReceivesAluDone();
+
+    //@(posedge clk);
+    //$display("clk: 9");
+    //rihReceivesAluDoneDown();
+    
+    //@(posedge clk);
+    //$display("clk: 10");
+
+    //@(posedge clk);
+    //$display("clk: 11");
+    
+    
+  endtask
   
   task setupToGetInstruction(
     input logic[31:0] exp_PC);
@@ -115,7 +178,7 @@ module risc_v_tb();
   endtask
   
   
-  task setUpRegDataFromInstruction(
+  task setUpRegDataFromInstruction_R(
     input logic[31:0] exp_instruction,
     input logic[4:0]  exp_reg_rd_addr_a,
     input logic[4:0]  exp_reg_rd_addr_b);
@@ -152,8 +215,34 @@ module risc_v_tb();
 
   endtask
     
+  task setUpRegDataFromInstruction_I(
+      input logic[31:0] exp_instruction,
+      input logic[4:0]  exp_reg_rd_addr_a);
+    
+    
+    //@(posedge clk);
+    $display();    
+    $display("Instruction received");
+    assert(r.mem_rd_data == exp_instruction) 
+      else $error("expected_instruction: should be %b. it is %b", 
+                   exp_instruction, 
+                   r.mem_rd_data); 
+    
+    assert(r.reg_rd_addr_a == exp_reg_rd_addr_a) 
+      else $error("r.reg_rd_addr_a should be %b. it is %b", 
+                   exp_reg_rd_addr_a, 
+                   r.reg_rd_addr_a); 
+            
+    assert(r.reg_rd_addr_a_valid == 1'b1) 
+      else $error("r.reg_rd_addr_a_valid should be %b. it is %b", 
+                   1'b1, 
+                   r.reg_rd_addr_a_valid); 
+    
+  endtask
   
-  task getRegData(
+  
+  
+  task getRegData_R(
     input logic[31:0] exp_reg_rd_data_a,
     input logic[31:0] exp_reg_rd_data_b);
 
@@ -172,23 +261,39 @@ module risc_v_tb();
        
   endtask
   
+  task getRegData_I(
+    input logic[31:0] exp_reg_rd_data_a);
+
+    $display();
+    $display("Received Reg Data");
+
+    assert(r.reg_rd_data_a == exp_reg_rd_data_a) 
+      else $error("r.reg_rd_data_a should be %b. it is %b", 
+                   exp_reg_rd_data_a, 
+                   r.reg_rd_data_a); 
+           
+  endtask
+  
+  
+  
+  
   
   task setUpALUCall(
-  	input logic[31:0] exp_reg_rd_data_a,
-    input logic[31:0] exp_reg_rd_data_b,
+    input logic[31:0] exp_alu_input_A,
+    input logic[31:0] exp_alu_input_B,
     input ALU_OP_CODE exp_alu_code);
     
     $display();
     $display("Setup ALU call");
 
-    assert(r.rih.alu_input_A == exp_reg_rd_data_a) 
+    assert(r.rih.alu_input_A == exp_alu_input_A) 
       else $error("r.rih.alu_input_A should be %b. it is %b", 
-                   exp_reg_rd_data_a, 
+                   exp_alu_input_A, 
                    r.rih.alu_input_A); 
     
-    assert(r.rih.alu_input_B == exp_reg_rd_data_b) 
+    assert(r.rih.alu_input_B == exp_alu_input_B) 
       else $error("r.rih.alu_input_B should be %b. it is %b", 
-                   exp_reg_rd_data_b, 
+                   exp_alu_input_B, 
                    r.rih.alu_input_B); 
     
     assert(r.rih.alu_op_code == exp_alu_code) 
@@ -200,23 +305,12 @@ module risc_v_tb();
   
   
   task aluWriteResultToReg(
-    input logic[31:0] exp_reg_rd_data_a,
-    input logic[31:0] exp_reg_rd_data_b,
     input logic[31:0] exp_reg_wr_addr,
     input logic[31:0] exp_reg_wr_data);
     
     $display();
     $display("aluWriteResultToReg");
     
-    assert(r.alu.input_A == exp_reg_rd_data_a) 
-      else $error("r.alu.input_A should be %b. it is %b", 
-                   exp_reg_rd_data_a, 
-                   r.alu.input_A); 
-    
-    assert(r.alu.input_B == exp_reg_rd_data_b) 
-      else $error("r.alu.input_B should be %b. it is %b", 
-                   exp_reg_rd_data_b, 
-                   r.alu.input_B); 
     
     assert(r.alu.reg_wr_data == exp_reg_wr_data) 
       else $error("r.alu.reg_wr_data should be %b. it is %b", 
@@ -283,7 +377,7 @@ module risc_v_tb();
                    r.mem_rd_addr_valid); 
     reset = 1'b0; 
     
-    fetch_and_run_next_inst(
+    fetch_and_run_R_inst(
       32'b0, // exp_PC,
       32'b0000000000100000000000100110011, // exp_instruction,
       5'b0,  // exp_reg_rd_addr_a,
@@ -295,7 +389,7 @@ module risc_v_tb();
       32'b1010101 //exp_reg_wr_data
     );
 	
-    fetch_and_run_next_inst(
+    fetch_and_run_R_inst(
       32'b1, // exp_PC,
       32'b00000000010000011000001010110011, // exp_instruction,
       5'b11,  // exp_reg_rd_addr_a,
@@ -307,7 +401,7 @@ module risc_v_tb();
       32'b1011010 //exp_reg_wr_data
     );
     
-    fetch_and_run_next_inst(
+    fetch_and_run_R_inst(
       32'b10, // exp_PC,
       32'b01000000010000011000001100110011, // exp_instruction,
       5'b11,  // exp_reg_rd_addr_a,
@@ -318,6 +412,19 @@ module risc_v_tb();
       5'b110,  //exp_reg_wr_addr,
       32'b000100 //exp_reg_wr_data
     );
+    
+    
+    fetch_and_run_I_inst(
+      32'b11, //exp_PC,
+      32'b00000000101000001000001110010011,  // exp_instruction,
+      5'b1, // exp_reg_rd_addr_a,
+      32'b101010, // exp_reg_rd_data_a,
+      12'b1010, // exp_immediate_value,
+      ADD, //exp_alu_code,
+      5'b111, // exp_reg_wr_addr,
+      32'b110100 //exp_reg_wr_data
+    );
+    
 
 
     $finish();

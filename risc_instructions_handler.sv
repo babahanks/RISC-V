@@ -74,7 +74,7 @@ module risc_instructions_handler_2(
     (mem_rd_ack && mem_rd_data[6:0] == 7'b1100011) ? B : None;
   */
   
-  always @(posedge clk) begin
+  always_ff @(posedge clk) begin
     if (reset) begin
       PC <= 1'b0;      
     end
@@ -87,7 +87,7 @@ module risc_instructions_handler_2(
   
   
   // instruction fetch start and completion
-  always @(posedge clk) begin    
+  always_ff @(posedge clk) begin    
     if (reset) begin
       last_reset <= 1'b1;
       mem_rd_addr_valid <= 1'b0;
@@ -109,7 +109,7 @@ module risc_instructions_handler_2(
     
     
   // get instruction from memory and execution for R instruction
-  always @(posedge clk) begin
+  always_ff @(posedge clk) begin
     if (reset) begin
         reg_rd_addr_a_valid <= 1'b0;
         reg_rd_addr_b_valid <= 1'b0;      
@@ -123,31 +123,15 @@ module risc_instructions_handler_2(
           reg_rd_addr_a_valid <= 1'b1;
           reg_rd_addr_b_valid <= 1'b1;
       end
-      else begin 
-        if (reg_rd_data_a_ack) begin
-        	reg_rd_addr_a_valid <= 1'b0;
-      	end
-      	if (reg_rd_data_b_ack) begin
-        	reg_rd_addr_b_valid <= 1'b0;      
-      	end
-      end
-    end
-  end
-  
-   always @(posedge clk) begin
-    if (reset) begin
-        reg_rd_addr_a_valid <= 1'b0;
-        reg_rd_addr_b_valid <= 1'b0;      
-    end
-    else begin 
-      if (mem_rd_ack && mem_rd_data[6:0] == 7'b0010011) begin
+      else if (mem_rd_ack && mem_rd_data[6:0] == 7'b0010011) begin
           instruction <= mem_rd_data;
           risc_instruction = I;
           reg_rd_addr_a <= mem_rd_data[19:15];
-          reg_rd_addr_b <= mem_rd_data[24:20];
+          //reg_rd_addr_b <= mem_rd_data[24:20];
           reg_rd_addr_a_valid <= 1'b1;
-          reg_rd_addr_b_valid <= 1'b1;
+          //reg_rd_addr_b_valid <= 1'b1;
       end
+
       else begin 
         if (reg_rd_data_a_ack) begin
         	reg_rd_addr_a_valid <= 1'b0;
@@ -158,12 +142,12 @@ module risc_instructions_handler_2(
       end
     end
   end
- 
   
-  
+   
+   
   
   // from reg to ALU
-  always @(posedge clk) begin
+  always_ff @(posedge clk) begin
     if (reset) begin
       alu_inputs_valid <= 1'b0;
     end
@@ -173,6 +157,7 @@ module risc_instructions_handler_2(
       end
       
       if (risc_instruction == R && reg_rd_data_a_ack && reg_rd_data_b_ack) begin
+        $display("RISC_R");
       
         if (instruction[14:12] == `RISC_R_FUNC_3_ADD && 
             instruction[31:25] == `RISC_R_FUNC_7_ADD)
@@ -222,6 +207,52 @@ module risc_instructions_handler_2(
         alu_inputs_valid <= 1'b1;
         alu_reg_out  <= 1'b1; 
       end
+      
+      else if (risc_instruction == I && reg_rd_data_a_ack) begin
+        $display("RISC_I");
+        if (instruction[14:12] == `RISC_I_FUNC_3_ADD)
+          begin
+            alu_op_code <= ADD; 
+            alu_input_B <= instruction[31:20];
+          end
+        else if (instruction[14:12] == `RISC_I_FUNC_3_XOR )
+          begin
+            alu_op_code <= XOR;
+            alu_input_B <= instruction[31:20];
+          end
+        else if (instruction[14:12] == `RISC_R_FUNC_3_OR )
+          begin
+            alu_op_code <= OR;                
+            alu_input_B <= instruction[31:20];
+          end
+        else if (instruction[14:12] == `RISC_R_FUNC_3_AND )
+          begin
+            alu_op_code <= AND;                
+            alu_input_B <= instruction[31:20];
+          end
+        else if (instruction[14:12] == `RISC_R_FUNC_3_SHIFT_LT_LOG)
+          begin
+            alu_op_code <= SHIFT_LT_LOG; 
+            alu_input_B <= instruction[24:20];
+          end  
+        else if (instruction[14:12] == `RISC_R_FUNC_3_SHIFT_RT_LOG)
+          begin
+            alu_op_code <= SHIFT_RT_LOG;                
+            alu_input_B <= instruction[24:20];
+          end            
+        else if (instruction[14:12] == `RISC_R_FUNC_3_SHIFT_RT_AR)
+          begin
+            alu_op_code <= SHIFT_RT_AR;                
+            alu_input_B <= instruction[24:20];
+          end 
+        
+        alu_input_A  <= reg_rd_data_a;
+        //alu_input_B  <= reg_rd_data_b;
+        alu_reg_addr <= instruction[11:7];
+        alu_inputs_valid <= 1'b1;
+        alu_reg_out  <= 1'b1; 
+      end
+
     end     
   end
     
